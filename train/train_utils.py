@@ -1,5 +1,7 @@
 import os
 import torch
+from pytorch_lightning import loggers as pl_loggers
+from datetime import datetime
 import torchvision
 from torchvision import datasets, transforms
 import torchvision.transforms as transforms
@@ -105,3 +107,82 @@ def dataset_to_dataloader(dataset, data_dir, train_batch_size, test_batch_size, 
     train_loader = DataLoader(train_set, batch_size=train_batch_size, shuffle=True, persistent_workers=True, **kwargs)
     test_loader = DataLoader(test_set, batch_size=test_batch_size, shuffle=False, persistent_workers=True, **kwargs)
     return train_loader, test_loader
+
+
+
+# 动态保存目录
+def update_save_paths(args):
+    save_dir = os.path.join(args.save_dir, args.dataset, args.model_name)
+    checkpoint_path = os.path.join(save_dir, f'lr_rate_{args.learning_rate:.6f}')
+    logger_path = os.path.join(save_dir, f'lr_rate_{args.learning_rate:.6f}')
+    os.makedirs(checkpoint_path, exist_ok=True)
+    return checkpoint_path, logger_path
+
+def update_hparams(args, model, trainer, train_loader, test_loader):
+    optimal_lr = auto_find_lr(trainer, model, train_loader, test_loader)
+    setattr(args, 'learning_rate', optimal_lr)
+    # 更新学习率
+    model.hparams.learning_rate = optimal_lr
+    
+    # 更新保存路径
+    checkpoint_path, logger_path = update_save_paths(args)
+    trainer.callbacks[0].dirpath = checkpoint_path  # 更新 ModelCheckpoint 路径
+    
+    current_time = datetime.now().strftime('%m-%d_%H-%M')
+    new_logger = pl_loggers.TensorBoardLogger(
+        save_dir=logger_path,
+        version=current_time,
+        name=f'{args.dataset}_training'
+    )
+    trainer.logger = new_logger  # 更新 Trainer 的 Logger
+    print(f'Using learning rate: {model.hparams.learning_rate}')
+
+
+def auto_find_lr(trainer, model, train_loader, test_loader, 
+                               min_lr=1e-8, max_lr=1.0, num_training=100,
+                               ):
+    """
+    Automatically find optimal learning rate and batch size using PyTorch Lightning's tuner.
+    
+    Args:
+        trainer: PyTorch Lightning trainer
+        model: The model to tune
+        train_loader: Training data loader
+        test_loader: Testing/validation data loader
+        min_lr: Minimum learning rate to try
+        max_lr: Maximum learning rate to try
+        num_training: Number of training steps for lr finder
+    
+    Returns:
+        tuple: (optimal_lr, optimal_batch_size)
+    """
+    optimal_lr = 1e-4  # default learning rate
+    
+    try:    
+        # find optimal learning rate
+        print('Running learning rate finder...')
+        lr_finder = trainer.tuner.lr_find(
+            model,
+            train_dataloaders=train_loader,
+            val_dataloaders=test_loader,
+            max_lr=max_lr,
+            min_lr=min_lr,
+            num_training=num_training,
+        )
+        
+        # Plot learning rate finder results
+        fig = lr_finder.plot(suggest=True)
+        fig.show()
+        # Get suggested learning rate
+        optimal_lr = lr_finder.suggestion()
+        print(f'Suggested learning rate: {optimal_lr}')
+        
+        # Print final results
+        print(f'\nFinal tuning results:')
+        print(f'Optimal learning rate: {optimal_lr}')
+        
+    except Exception as e:
+        print(f'Parameter tuning failed: {str(e)}')
+        print(f'Using default values - learning_rate: {optimal_lr}')
+        
+    return optimal_lr

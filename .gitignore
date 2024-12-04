@@ -1,0 +1,14 @@
+*.h5  # 忽略所有 .h5 文件
+*.ckpt  # 忽略所有 .ckpt 文件
+*.pt  # 忽略 PyTorch 模型文件
+
+CLIP/*
+
+data/*
+!data/ood_data/.gitkeep  # 保留 ood_data 目录
+
+train/checkpoints/*
+!train/checkpoints/.gitkeep  # 保留 checkpoints 目录
+
+cache/*
+!cache/.gitkeep  # 保留 cache 目录

@@ -74,12 +74,10 @@ class MInterface(pl.LightningModule):
         dict - A dictionary. Can include any keys, but must include the key 'loss'
         None - Training will skip to the next batch 
         '''
-         # 1. 确保梯度清零
-        self.optimizers().zero_grad()
         with torch.amp.autocast('cuda', enabled=True):
             data, target = batch
             batch_size = len(target)
-            label = torch.tensor(target, dtype=torch.long).view(batch_size, 1)
+            label = target.clone().detach().long().view(batch_size, 1)
             one_hot = torch.zeros(batch_size, self.nums_classes, device=label.device).scatter_(1, label, 1)
             text_inputs = clip.tokenize(self.classes).to(label.device) # (num_classes, 77)
             
@@ -108,17 +106,19 @@ class MInterface(pl.LightningModule):
             # 最终损失 = 主任务损失 + λ * 正则化损失
             loss = main_loss + reg_weight * clip_loss     
                     
-        result = {"loss": loss.item(),
-                  "ova_loss": ova_loss.item(),
-                  "ce_loss": ce_loss.item(),
-                  "clip_loss": clip_loss.item(),
-                  "reg_weight": reg_weight,
-                  "logits": logits.item(),
-                  "target": target,
-                  "batch_size": batch_size}
+        # 记录结果
+        result = {
+            "loss": loss.detach(),
+            "ova_loss": ova_loss.detach(),
+            "ce_loss": ce_loss.detach(),
+            "clip_loss": clip_loss.detach(),
+            "reg_weight": reg_weight,
+            "logits": logits.detach(),  # 不使用 .item()，保持张量
+            "target": target,
+            "batch_size": batch_size
+        }
         self.outputs_list.append(result)
-        torch.cuda.empty_cache()
-        self.log('loss', loss.item(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {"loss": loss}
 
     def on_train_epoch_end(self):
@@ -147,7 +147,7 @@ class MInterface(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         data, target = batch
         batch_size = len(target)
-        label = torch.tensor(target, dtype=torch.long).view(batch_size, 1)
+        label = target.clone().detach().long().view(batch_size, 1)
         text_inputs = clip.tokenize(self.classes).to(label.device) # (num_classes, 77)
         
         logits_voters, logits_per_image = self(image_inputs = data, text_inputs = text_inputs) # logits (batch_size, num_classes)
