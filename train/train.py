@@ -9,11 +9,15 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning import loggers as pl_loggers
 import argparse
-import os
 from datetime import datetime
-
 import sys
-sys.path.append('/Users/utopia/Documents/blip2/voters')
+import os
+# 获取当前脚本的绝对路径
+current_file_path = os.path.abspath(__file__)
+# 获取上一层目录路径
+parent_dir = os.path.dirname(os.path.dirname(current_file_path))
+# 将上一层目录添加到 sys.path
+sys.path.append(parent_dir)
 from models.model_inter_ova import MInterface
 from models.get_classes import get_classes
 from train_utils import *
@@ -21,8 +25,7 @@ from train_utils import *
 # 设置可选的环境变量
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'  # 或者 'max_split_size_mb:32'
 devices = [2,3,4,5]
-tmp_dir = '/Users/utopia/Documents/blip2/voters/cache'
-
+tmp_dir = os.path.join(parent_dir, 'cache')
 
 def get_args():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR Training for BLIP2_Adapter')
@@ -39,7 +42,7 @@ def get_args():
     parser.add_argument('--learning_rate', type=float, default=0.003311, metavar='LR', help='learning rate')
 
     # 模型的选择
-    parser.add_argument('--model_name', '-a', default='ViT-B/32', choices=model_options)
+    parser.add_argument('--arch', default='ViT-B/32', choices=model_options)
     parser.add_argument('--pretrained_dir', type=str, default= tmp_dir, help='预训练模型的下载路径')
     parser.add_argument('--logit_scale', type=float, default=None, help='logits的缩放因子')
     parser.add_argument('--thres_type', type=str, default='one', choices=threshold_options, help='阈值类型')
@@ -50,13 +53,13 @@ def get_args():
 
     # 数据集的选择
     parser.add_argument('--dataset', '-d', default='cifar-10', choices=dataset_options)  # 选择数据集。
-    parser.add_argument('--data-dir', default='/Users/utopia/Documents/blip2/voters/data', help='directory of dataset for training and testing')  # 数据集的存储路径。
+    parser.add_argument('--data-dir', default=os.path.join(parent_dir, 'data') , help='directory of dataset for training and testing')  # 数据集的存储路径。
 
     # 模型保存目录和日志目录
-    parser.add_argument('--save-dir', default='/Users/utopia/Documents/blip2/voters/train/checkpoints', type=str, help='directory to save logs and models')
+    parser.add_argument('--save-dir', default=os.path.join(parent_dir, 'train', 'checkpoints') , type=str, help='directory to save logs and models')
     #相关设置
     parser.add_argument('--num_workers', type=int, default=2, metavar='LR', help='number of workers for data loading')  # 数据加载时的工作线程数。
-    parser.add_argument('--auto-find', type=bool, default=True, help='automatically find best lr and batch_size')  # 数据加载时的工作线程数。
+    parser.add_argument('--auto-find', type=bool, default=False, help='automatically find best lr and batch_size')  # 数据加载时的工作线程数。
     # 解析命令行参数
     args = parser.parse_args()  
     return args
@@ -65,12 +68,11 @@ def train(args):
     kwargs = {'num_workers': args.num_workers, 'pin_memory': True}
     classes, num_classes = get_classes(args.dataset)  # 获取数据集的类别列表和类别数。
     setattr(args, 'num_classes', num_classes)  # 添加新的属性
-    if args.thres_type == 'const':
-        setattr(args, 'global_thres', 150)  # 添加新的属性
-    save_dir = os.path.join(args.save_dir, args.dataset, args.model_name)
+    save_dir = os.path.join(args.save_dir, args.dataset, args.arch)
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(tmp_dir, exist_ok=True)
-    checkpoint_path = os.path.join(save_dir, 'lr_rate_'+ str(args.learning_rate))
+    current_time = datetime.now().strftime('%m-%d_%H-%M')
+    checkpoint_path = os.path.join(save_dir, 'lr_rate_'+ str(args.learning_rate), current_time)
     logger_path = os.path.join(save_dir, 'lr_rate_'+ str(args.learning_rate))
     
     # 定义回调函数
@@ -89,7 +91,7 @@ def train(args):
     ]
 
     # logger
-    current_time = datetime.now().strftime('%m-%d_%H-%M')
+
     logger = pl_loggers.TensorBoardLogger(
         save_dir=logger_path,
         version=current_time,
