@@ -22,10 +22,10 @@ class Adapter(nn.Module):
         return x
 
 class CLIP_Voter(nn.Module):
-    def __init__(self, args):
+    def __init__(self, arch, pretrained_dir=pretrained_dir, logit_scale=None, thres_type='multi', num_classes=10, ratio=0.2, global_thres=150):
         '''
         args:
-            -- model_name: CLIP模型的名称
+            -- arch: CLIP模型的名称
             -- pretrained_dir: 预训练模型的下载路径
             -- logit_scale: logits的缩放因子
             -- thres_type: 阈值类型
@@ -38,7 +38,7 @@ class CLIP_Voter(nn.Module):
             
         '''
         super().__init__()
-        self.clip_model, preprocess = clip.load(args.model_name, device='cpu', jit=False, download_root=args.pretrained_dir)
+        self.clip_model, preprocess = clip.load(arch, device='cpu', jit=False, download_root=pretrained_dir)
         self.visual_adapter = Adapter(self.clip_model.visual.output_dim, 4)
         
         # 冻结CLIP模型的参数
@@ -46,20 +46,20 @@ class CLIP_Voter(nn.Module):
             param.requires_grad = False
 
         
-        if args.logit_scale is None:    
+        if logit_scale is None:    
             self.logit_scale = self.clip_model.logit_scale
         else:
-            self.logit_scale = args.logit_scale
+            self.logit_scale = logit_scale
         
         self.dtype = self.clip_model.dtype
-        self.ratio = args.ratio
+        self.ratio = ratio
         
-        if args.thres_type == 'multi':
-            self.rejection_threshold = nn.Parameter(torch.ones(1, args.num_classes))
-        elif args.thres_type == 'one':
+        if thres_type == 'multi':
+            self.rejection_threshold = nn.Parameter(torch.ones(1, num_classes))
+        elif thres_type == 'one':
             self.rejection_threshold = nn.Parameter(torch.tensor(1.00))
-        elif args.thres_type == 'const':
-            self.rejection_threshold = torch.tensor(args.global_thres) 
+        elif thres_type == 'const':
+            self.rejection_threshold = torch.tensor(global_thres) 
         # self.temperature_scale = torch.tensor(args.logit_temperature)
         
     def forward(self, image_inputs, text_inputs):
@@ -112,7 +112,7 @@ if __name__ =='__main__':
     
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_name', type=str, default='ViT-B/32')
+    parser.add_argument('--arch', type=str, default='ViT-B/32')
     parser.add_argument('--pretrained_dir', type=str, default='~/.cache/clip')
     parser.add_argument('--logit_scale', type=float, default=None)
     parser.add_argument('--thres_type', type=str, default='multi')

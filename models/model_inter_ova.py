@@ -20,7 +20,7 @@ class MInterface(pl.LightningModule):
         super().__init__()
         '''
         args:
-            --model_name: CLIP模型的名称
+            --arch: CLIP模型的名称
             --pretrained_dir: 预训练模型的下载路径
             --logit_scale: logits的缩放因子
             --thres_type: 阈值类型
@@ -37,7 +37,7 @@ class MInterface(pl.LightningModule):
             # -- device: 设备
         '''
         self.args = args
-        self.model = CLIP_Voter(args)
+        self.model = CLIP_Voter(arch=args.arch, pretrained_dir=args.pretrained_dir, logit_scale=args.logit_scale, thres_type=args.thres_type, num_classes=args.num_classes, ratio=args.ratio)
         self.criterion = nn.CrossEntropyLoss()
         self.criterion_ova = nn.BCEWithLogitsLoss()
         self.outputs_list = []

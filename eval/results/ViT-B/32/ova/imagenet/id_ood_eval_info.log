@@ -1,0 +1,3 @@
+2024-12-05 16:08:22 : ========== Start Testing ==========
+2024-12-05 16:08:22 : Namespace(test_batch_size=128, seed=1, dataset='imagenet', data_dir='/home/yuantongxin/whx/BCLIP2/data', model_name='ViT-B/32', checkpoint_path=None, score='ova', T=1, logs='/Users/utopia/Documents/blip2/voters/eval/results', ensemble=False)
+2024-12-05 16:08:22 : ===================================
