@@ -147,9 +147,10 @@ def set_ood_loader(dataset_name, root_dir, batch_size, **kwargs):
         data_dir = os.path.join(root_dir, 'ood_data', 'LSUN_resize')
     elif dataset_name == 'isun':
         data_dir = os.path.join(root_dir, 'ood_data', 'iSUN')
-    elif dataset_name == ['cifar-10', 'cifar-100','cub200_ood', 'food101_ood', 'stanford_cars_ood', 'oxford_iiit_pet_ood']:
+    elif dataset_name in ['cifar-10', 'cifar-100','cub200_ood', 'food101_ood', 'stanford_cars_ood', 'oxford_iiit_pet_ood']:
         data_dir = root_dir
-        
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
     ood_loader = DataLoader(ood_dataset[dataset_name](data_dir, transorm), batch_size=batch_size, shuffle=False, **kwargs)
     
     return ood_loader
@@ -178,7 +179,7 @@ def get_ood_scores(args, loader, model=None, device=None, in_dist=False):
             else:
                 logits_voters = clip_text_ens(model, data, classes, device)
                 
-            logits = logits_voters - model.rejection_threshold
+            logits = logits_voters - model.model.rejection_threshold
             
             ## OOD detection
             if args.score == 'ova':  # OVA评分

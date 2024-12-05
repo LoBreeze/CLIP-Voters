@@ -56,10 +56,10 @@ def get_args():
     parser.add_argument('--data-dir', default=os.path.join(parent_dir, 'data') , help='directory of dataset for training and testing')  # 数据集的存储路径。
 
     # 模型保存目录和日志目录
-    parser.add_argument('--save-dir', default=os.path.join(parent_dir, 'train', 'checkpoint') , type=str, help='directory to save logs and models')
+    parser.add_argument('--save-dir', default=os.path.join(parent_dir, 'train', 'checkpoints') , type=str, help='directory to save logs and models')
     #相关设置
     parser.add_argument('--num_workers', type=int, default=2, metavar='LR', help='number of workers for data loading')  # 数据加载时的工作线程数。
-    parser.add_argument('--auto-find', type=bool, default=True, help='automatically find best lr and batch_size')  # 数据加载时的工作线程数。
+    parser.add_argument('--auto-find', type=bool, default=False, help='automatically find best lr and batch_size')  # 数据加载时的工作线程数。
     # 解析命令行参数
     args = parser.parse_args()  
     return args
@@ -68,10 +68,11 @@ def train(args):
     kwargs = {'num_workers': args.num_workers, 'pin_memory': True}
     classes, num_classes = get_classes(args.dataset)  # 获取数据集的类别列表和类别数。
     setattr(args, 'num_classes', num_classes)  # 添加新的属性
-    save_dir = os.path.join(args.save_dir, args.dataset, args.model_name)
+    save_dir = os.path.join(args.save_dir, args.dataset, args.arch)
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(tmp_dir, exist_ok=True)
-    checkpoint_path = os.path.join(save_dir, 'lr_rate_'+ str(args.learning_rate))
+    current_time = datetime.now().strftime('%m-%d_%H-%M')
+    checkpoint_path = os.path.join(save_dir, 'lr_rate_'+ str(args.learning_rate), current_time)
     logger_path = os.path.join(save_dir, 'lr_rate_'+ str(args.learning_rate))
     
     # 定义回调函数
@@ -90,7 +91,7 @@ def train(args):
     ]
 
     # logger
-    current_time = datetime.now().strftime('%m-%d_%H-%M')
+
     logger = pl_loggers.TensorBoardLogger(
         save_dir=logger_path,
         version=current_time,
