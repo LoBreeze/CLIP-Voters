@@ -133,7 +133,15 @@ class MInterface(pl.LightningModule):
         self.outputs_list.clear()
         optimizer = self.optimizers()
         current_lr = optimizer.param_groups[0]['lr']
-        log_string = f'Epoch {self.current_epoch} \t Train Time: {self.end_time - self.start_time} \t Learning Rate: {current_lr} \t Train Loss: {self.train_loss / self.train_n} \t Train Ova Loss: {self.train_ova_loss / self.train_n} \t Train Reg Loss: {self.train_reg_loss / self.train_n} \t Train Acc: {self.train_acc / self.train_n}'
+        log_string = (
+            f"Epoch:            {self.current_epoch}\n"
+            f"Train Time:       {self.end_time - self.start_time:.2f}s\n"
+            f"Learning Rate:    {current_lr:.6f}\n"
+            f"Train Loss:       {self.train_loss / self.train_n:.4f}\n"
+            f"Train Ova Loss:   {self.train_ova_loss / self.train_n:.4f}\n"
+            f"Train Reg Loss:   {self.train_reg_loss / self.train_n:.4f}\n"
+            f"Train Acc:        {self.train_acc / self.train_n:.4f}"
+        )
         self.logger.experiment.add_text('train_log', log_string, self.current_epoch)
         self.print(log_string)
 
@@ -155,7 +163,7 @@ class MInterface(pl.LightningModule):
         # logits = -(logits_classifier - self.model.rejection_threshold) * self.model.temperature_scale
         logits = logits_voters - self.model.rejection_threshold
 
-        self.validate_correct += (logits[:batch_size].max(1)[1] == label).sum().item()
+        self.validate_correct += (logits.max(1)[1] == label.view(-1)).sum().item()
         
         # 累积正确预测的数量和总样本数
         self.validate_n += batch_size
@@ -164,7 +172,14 @@ class MInterface(pl.LightningModule):
 
     def on_validation_end(self):
         self.validate_end_time = time.time()
-        log_string = f'Epoch {self.current_epoch} \t Validate Time: {self.validate_end_time - self.validate_start_time} \t Validate Acc: {self.validate_correct / self.validate_n}'
+        val_acc = self.validate_correct / self.validate_n
+        log_string = (
+            f"Epoch:           {self.current_epoch}\n"
+            f"Validate Time:   {self.validate_end_time - self.validate_start_time:.2f}s\n"
+            f"Validate Correct:{self.validate_correct}\n"
+            f"Validate Size:   {self.validate_n}\n"
+            f"Validate Acc:    {val_acc:.4f}"
+        )
         self.logger.experiment.add_text('val_log', log_string, self.current_epoch)
         self.print(log_string)
 

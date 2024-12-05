@@ -1,4 +1,5 @@
 import pytorch_lightning as pl  # pytorch-lightning       1.9.0
+from pytorch_lightning.strategies import DDPStrategy  # 分布式数据并行 (DDP) 策略
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -35,7 +36,7 @@ def get_args():
     parser.add_argument('--test-batch-size', type=int,  default=32, metavar='N', help='input batch size for testing (default: 512)')  # 测试批次大小。
     parser.add_argument('--epochs', type=int, default=200, metavar='N', help='number of epochs to train')  # 训练轮数。
     parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
-    parser.add_argument('--learning_rate', type=float, default=1e-2, metavar='LR', help='learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.003311, metavar='LR', help='learning rate')
 
     # 模型的选择
     parser.add_argument('--model_name', '-a', default='ViT-B/32', choices=model_options)
@@ -76,9 +77,9 @@ def train(args):
     callbacks = [
         # 模型检查点
         ModelCheckpoint(
-            monitor='val_loss',
+            monitor='val_acc',
             dirpath=checkpoint_path,
-            filename='model-{epoch:02d}-{val_loss:.2f}',
+            filename='model-{epoch:02d}-{val_acc:.2f}',
             save_top_k=3,
             mode='min',
             save_last=True  # 保存最新的检查点
@@ -117,11 +118,13 @@ def train(args):
     #     max_epochs=args.epochs,  # 最大训练轮数
     #     accelerator='gpu',  # 分布式数据并行 (DDP)
     #     devices= devices ,  # 使用 2 个 GPU 进行训练 'auto', [1,2], 7
-    #     strategy='ddp_find_unused_parameters_true',  # 分布式数据并行 (DDP) 策略
+    #     # strategy='ddp_find_unused_parameters_true',  # 分布式数据并行 (DDP) 策略
+    #     strategy=DDPStrategy(find_unused_parameters=True),  # 分布式数据并行 (DDP) 策略  | None
     #     logger=logger,  # 使用 TensorBoard 记录
     #     callbacks=callbacks,  # 模型保存回调
     #     enable_progress_bar=True,
-    #     accumulate_grad_batches=16,  
+    #     accumulate_grad_batches=16,
+    #     default_root_dir = tmp_dir, # 保存一些其他文件  
     #     # gradient_clip_val=1.0,
     #     # limit_train_batches=1.0,
     # )
@@ -142,7 +145,10 @@ def train(args):
     )
     
     if args.auto_find:
-        update_hparams(args, model, trainer, train_loader, test_loader)
+        suggest_lr = auto_find_lr(trainer, model, train_loader, test_loader)
+        print(f'Suggested learning rate: {suggest_lr}')
+        print('Please set the learning rate in the args and run the script again.')
+        exit(0)
 
     # 开始训练
     print('\n\nStart training...')
