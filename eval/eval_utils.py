@@ -18,10 +18,6 @@ from models.get_classes import get_classes
 from clip import clip
 from imagenet_templates import *
 
-mix_thres = {
-    'cifar-10': -0.95,
-    'cifar-100': -0.65,
-}
 
 ood_dataset = {
     'cifar-10': lambda data_dir, transform: datasets.CIFAR10(root=data_dir, train=False, download=True, transform=transform),
@@ -33,8 +29,9 @@ ood_dataset = {
     'dtd': lambda data_dir, transform: datasets.ImageFolder(data_dir, transform=transform),
     'svhn': lambda data_dir, transform: datasets.SVHN(data_dir, split='test', download=True, transform=transform),
     'places365': lambda data_dir, transform: datasets.ImageFolder(data_dir, transform=transform),
-    'lsun': lambda data_dir, transform: LSUN(data_dir, transform=transform),
+    'lsun': lambda data_dir, transform: datasets.ImageFolder(data_dir, transform=transform),
     'lsun-r': lambda data_dir, transform: datasets.ImageFolder(data_dir, transform=transform),
+    'iNaturalist': lambda data_dir, transform: datasets.ImageFolder(data_dir, transform=transform),
     'isun': lambda data_dir, transform: datasets.ImageFolder(data_dir, transform=transform),
     'imagenet20': lambda data_dir, transform: datasets.ImageFolder(os.path.join(data_dir, 'val'), 
                                 transform=transform,
@@ -59,8 +56,8 @@ to_np = lambda x: x.data.cpu().numpy()  # 将张量转换为NumPy数组的函数
 
 def get_id_ood_datasets(dataset_name):
     id_ood_dataset = {
-        'cifar-10': ['cifar-100', 'dtd', 'places365','svhn', 'lsun', 'lsun-r', 'isun'],
-        'cifar-100': ['cifar-10', 'dtd', 'places365','svhn', 'lsun', 'lsun-r', 'isun'],
+        'cifar-10': ['cifar-100', 'dtd', 'places365','svhn', 'lsun', 'lsun-r', 'isun', 'iNaturalist'],
+        'cifar-100': ['cifar-10', 'dtd', 'places365','svhn', 'lsun', 'lsun-r', 'isun', 'iNaturalist'],
         'cub200': ['cub200_ood'],
         'food101': ['food101_ood'],
         'stanford_cars': ['stanford_cars_ood'],
@@ -147,6 +144,8 @@ def set_ood_loader(dataset_name, root_dir, batch_size, **kwargs):
         data_dir = os.path.join(root_dir, 'ood_data', 'LSUN_resize')
     elif dataset_name == 'isun':
         data_dir = os.path.join(root_dir, 'ood_data', 'iSUN')
+    elif dataset_name == 'iNaturalist':
+        data_dir = os.path.join(root_dir, 'ood_data', 'iNaturalist')
     elif dataset_name in ['cifar-10', 'cifar-100','cub200_ood', 'food101_ood', 'stanford_cars_ood', 'oxford_iiit_pet_ood']:
         data_dir = root_dir
     else:
@@ -157,7 +156,7 @@ def set_ood_loader(dataset_name, root_dir, batch_size, **kwargs):
         
     
     
-def get_ood_scores(args, loader, model=None, device=None, in_dist=False):
+def get_ood_scores(args, loader, model=None, device=None, in_dist=False, mix_thres = 0):
     if model is None:
         raise ValueError("model is None")
     _score = []  # 
@@ -189,7 +188,7 @@ def get_ood_scores(args, loader, model=None, device=None, in_dist=False):
                 ind_prob = to_np(F.softmax(logits_extra, dim=1)[:, :-1])  # 计算softmax概率
                 p_max_in = np.max(ind_prob, axis=1)  # 计算最大概率
                 p_ood = to_np(1 / (1 + torch.sum(torch.exp(logits), dim=1)))  # 计算OOD概率
-                score_mix = np.minimum(1.0 - p_ood, p_max_in - mix_thres[args.dataset])  # 计算混合分数
+                score_mix = np.minimum(1.0 - p_ood, p_max_in - mix_thres)  # 计算混合分数
                 _score.append(-score_mix)  # 添加分数
                 list_softmax.extend(score_mix)  # 添加softmax输出
             # if softmax:

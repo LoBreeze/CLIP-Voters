@@ -42,6 +42,7 @@ class MInterface(pl.LightningModule):
         self.criterion_ova = nn.BCEWithLogitsLoss()
         self.outputs_list = []
         self.classes, self.nums_classes = get_classes(self.args.dataset)
+        self.classes = [f"a photo of a {c}" for c in self.classes]
         self.save_hyperparameters(args)
         self.automatic_optimization = True  # 使用自动优化
         self.start_time = 0

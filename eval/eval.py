@@ -25,6 +25,12 @@ from settings import *
 from scores_function  import *
 from scipy import stats
 
+mix_thres = {
+    'cifar-10': -0.95,
+    'cifar-100': -0.65,
+}
+
+
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'  # 或者 'max_split_size_mb:32'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  # 检测GPU是否可用
 kwargs = {'num_workers': 4, 'pin_memory': True}
@@ -127,7 +133,8 @@ def eval():
     for ood in ood_lists:
         log.debug(f"\n\n{'='*10} Evaluting OOD dataset {ood} {'='*10}")
         ood_loader = set_ood_loader(dataset_name=ood, root_dir=args.data_dir, batch_size=args.test_batch_size, **kwargs)  # 获取OOD数据加载器
-        out_score, list_softmax_OOD, list_correct_OOD = get_ood_scores(args=args, loader=ood_loader, model=model, device=device)  # 获取OOD数据集的分数
+        out_score, list_softmax_OOD, list_correct_OOD = get_ood_scores(args=args, loader=ood_loader, model=model, device=device, mix_thres = mix_thres[args.dataset])  # 获取OOD数据集的分数
+        log.debug(f"mix_thres: {mix_thres[args.dataset]}")
         log.debug(f"in scores: {in_score[:5]}")
         log.debug(f"out scores: {out_score[:5]}")
         log.debug(f"out scores: {stats.describe(out_score)}")  # 打印OOD数据集的分数

@@ -7,7 +7,7 @@ def print_measures(log, auroc, aupr, fpr, method_name='Ours', recall_level=0.95)
         print('AUROC: \t\t\t{:.2f}'.format(100 * auroc))
         print('AUPR:  \t\t\t{:.2f}'.format(100 * aupr))
     else:
-        log.debug('\t\t\t\t' + method_name)
+        log.debug('\tArgs Score: ' + method_name)
         log.debug('  FPR{:d} AUROC AUPR'.format(int(100*recall_level)))
         log.debug('& {:.2f} & {:.2f} & {:.2f}'.format(100*fpr, 100*auroc, 100*aupr))
 
