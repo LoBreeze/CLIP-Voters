@@ -7,7 +7,7 @@ def print_measures(log, auroc, aupr, fpr, method_name='Ours', recall_level=0.95)
         print('AUROC: \t\t\t{:.2f}'.format(100 * auroc))
         print('AUPR:  \t\t\t{:.2f}'.format(100 * aupr))
     else:
-        log.debug('\t\t\t\t' + method_name)
+        log.debug('\tArgs score: ' + method_name)
         log.debug('  FPR{:d} AUROC AUPR'.format(int(100*recall_level)))
         log.debug('& {:.2f} & {:.2f} & {:.2f}'.format(100*fpr, 100*auroc, 100*aupr))
 
@@ -141,8 +141,8 @@ def aurc_eaurc(risk_list):
         risk_coverage_curve_area += risk_value * (1 / len(risk_list))  # 累加面积
     aurc = risk_coverage_curve_area  # AURC
     eaurc = risk_coverage_curve_area - optimal_risk_area  # EAURC
-    print("AURC {0:.2f}".format(aurc * 1000))  # 输出AURC
-    print("EAURC {0:.2f}".format(eaurc * 1000))  # 输出EAURC
+    # print("AURC {0:.2f}".format(aurc * 1000))  # 输出AURC
+    # print("EAURC {0:.2f}".format(eaurc * 1000))  # 输出EAURC
     return aurc, eaurc  # 返回结果
     
 

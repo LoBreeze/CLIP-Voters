@@ -42,6 +42,7 @@ class MInterface(pl.LightningModule):
         self.criterion_ova = nn.BCEWithLogitsLoss()
         self.outputs_list = []
         self.classes, self.nums_classes = get_classes(self.args.dataset)
+        self.classes = [f"a photo of a {c}" for c in self.classes]
         self.save_hyperparameters(args)
         self.automatic_optimization = True  # 使用自动优化
         self.start_time = 0
@@ -78,11 +79,17 @@ class MInterface(pl.LightningModule):
             data, target = batch
             batch_size = len(target)
             label = target.clone().detach().long().view(batch_size, 1)
+            
             one_hot = torch.zeros(batch_size, self.nums_classes, device=label.device).scatter_(1, label, 1)
             text_inputs = clip.tokenize(self.classes).to(label.device) # (num_classes, 77)
-            
+        
+            # print(text_inputs.shape)
+            # print(label.shape)
+
+
             logits_voters, logits_per_image = self(image_inputs = data, text_inputs = text_inputs) # logits (batch_size, num_classes)
             logits = logits_voters - self.model.rejection_threshold
+            # print(logits.shape)
             
             # calculating OVA loss
             ova_loss = self.criterion_ova(logits, one_hot) * self.nums_classes

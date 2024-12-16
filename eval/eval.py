@@ -1,5 +1,3 @@
-
-
 import numpy as np
 import sys
 from PIL import Image as PILImage
@@ -25,6 +23,12 @@ from settings import *
 from scores_function  import *
 from scipy import stats
 
+mix_thres = {
+    'cifar-10': 0.1,
+    'cifar-100': 2,
+    'cub200': 0.1,
+}
+
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'  # 或者 'max_split_size_mb:32'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  # 检测GPU是否可用
 kwargs = {'num_workers': 4, 'pin_memory': True}
@@ -39,15 +43,15 @@ score_options = ['energy', 'max-logit', 'msp', 'odin', 'mahalanobis','ova']
 
 def eval():
     # 基础的测试设置
-    parser.add_argument('--test-batch-size', type=int,  default=128, metavar='N', help='input batch size for testing (default: 128)')  # 测试批次大小。
+    parser.add_argument('--test-batch-size', type=int,  default=512, metavar='N', help='input batch size for testing (default: 128)')  # 测试批次大小。
     parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed')
 
     # 数据设置
     parser.add_argument('--data-dir', default = os.path.join(parent_dir, 'data'), help='directory of dataset for testing')  # 数据集的存储路径。
 
     # 模型设置
-    parser.add_argument('--yaml_file', '-y', default='ViT-B/32', choices=model_options)
-    parser.add_argument('--checkpoint_path', '-c', default=None, type=str, help='model path')  # 模型路径。
+    parser.add_argument('--yaml_file', '-y', default=r'C:\code\voters\train\checkpoints\cifar-100\ViT-B\32\lr_rate_0.003311\cifar-100_training\12-06_09-01\hparams.yaml', choices=model_options)
+    parser.add_argument('--checkpoint_path', '-c', default=r'C:\code\voters\train\checkpoints\cifar-100\ViT-B\32\lr_rate_0.003311\12-06_09-01\last.ckpt', type=str, help='model path')  # 模型路径。
 
     # 分数设置
     parser.add_argument('--score', default='ova', type=str, help='score type', choices=score_options)  # 分数类型。
@@ -100,7 +104,9 @@ def eval():
 
     # /////////////// OOD检测准备 ///////////////
     auroc_list, aupr_list, fpr_list = [], [], []  # 初始化AUC和FPR列表
+
     log = setup_log(args, hparams, result_dir)  # 设置日志记录器
+    
 
 
     in_score, right_score, wrong_score, list_softmax_ID, list_correct_ID = get_ood_scores(args=args, loader=test_loader, model=model, device=device, in_dist=True)  # 获取ID数据集的分数
@@ -127,7 +133,8 @@ def eval():
     for ood in ood_lists:
         log.debug(f"\n\n{'='*10} Evaluting OOD dataset {ood} {'='*10}")
         ood_loader = set_ood_loader(dataset_name=ood, root_dir=args.data_dir, batch_size=args.test_batch_size, **kwargs)  # 获取OOD数据加载器
-        out_score, list_softmax_OOD, list_correct_OOD = get_ood_scores(args=args, loader=ood_loader, model=model, device=device)  # 获取OOD数据集的分数
+        out_score, list_softmax_OOD, list_correct_OOD = get_ood_scores(args=args, loader=ood_loader, model=model, device=device, mix_thres=mix_thres[args.dataset])  # 获取OOD数据集的分数
+        log.debug(f"mix_thres: {mix_thres[args.dataset]}")
         log.debug(f"in scores: {in_score[:5]}")
         log.debug(f"out scores: {out_score[:5]}")
         log.debug(f"out scores: {stats.describe(out_score)}")  # 打印OOD数据集的分数

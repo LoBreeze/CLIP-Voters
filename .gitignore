@@ -12,3 +12,6 @@ train/checkpoints/*
 
 cache/*
 !cache/.gitkeep  # 保留 cache 目录
+
+eval/results/*
+!eval/results/.gitkeep  # 保留 results 目录

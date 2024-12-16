@@ -72,4 +72,4 @@ def save_as_dataframe(args, result_dir, out_datasets, fpr_list, auroc_list, aupr
     df = pd.DataFrame.from_dict(data, orient='index',
                        columns=['FPR95', 'AUROC', 'AUPR'])
     time_str = time.strftime("%m-%d__%H:%M")
-    df.to_csv(os.path.join(result_dir, f'{time_str}.csv'))
+    df.to_csv(os.path.join(result_dir, f'resluts.csv'))

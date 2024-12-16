@@ -3,7 +3,7 @@ import json
 import os
 import pickle
 
-root_path = '/home/yuantongxin/whx/BCLIP2/data'
+root_path =r'C:\code\voters\data'
 
 def obtain_ood_oxford_iiit_pet_classes():
     loc = 'oxford-iiit-pet/ood_18_classes.pkl'
@@ -194,15 +194,15 @@ def get_classes(dataset):
         classes = obtain_id_CUB100_classes()
     elif dataset == 'cub200_ood':
         classes = obtain_ood_CUB100_classes()
-    elif dataset == ['food101_in','food101']:
+    elif dataset in ['food101_in','food101']:
         classes = obtain_id_food101_classes()
     elif dataset == 'food101_ood':
         classes = obtain_ood_food101_classes()
-    elif dataset == ['stanford_cars_in', 'stanford_cars']:
+    elif dataset in ['stanford_cars_in', 'stanford_cars']:
         classes = obtain_id_stanford_cars_classes()
     elif dataset == 'stanford_cars_ood':
         classes = obtain_ood_stanford_cars_classes()
-    elif dataset == ['oxford_iiit_pet_in', 'oxford_iiit_pet']:
+    elif dataset in ['oxford_iiit_pet_in', 'oxford_iiit_pet']:
         classes = obtain_id_oxford_iiit_pet_classes()
     elif dataset == 'oxford_iiit_pet_ood':
         classes = obtain_ood_oxford_iiit_pet_classes()
@@ -214,37 +214,6 @@ def get_classes(dataset):
 
 
 if __name__ == '__main__':
-
-    from torchvision import datasets, transforms
-    import torchvision.transforms as transforms
-    import os
-    # 定义图像预处理流程
-    image_size=224
-    transform = transforms.Compose([
-        # 将图像调整为统一大小
-        transforms.Resize((image_size, image_size)),
-        # 随机水平翻转增强数据
-        transforms.RandomHorizontalFlip(),
-        # 转换为张量
-        transforms.ToTensor(),
-        # 标准化，使用ImageNet的均值和标准差
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225]
-        )
-    ])
-    
-    normalize = transforms.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
-                                         std=(0.26862954, 0.26130258, 0.27577711))  # for CLIP
-    val_preprocess = transforms.Compose([
-            transforms.Resize(224),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            normalize
-        ])
-    
-    # image_net_10 = datasets.ImageFolder(root = '/home/yuantongxin/whx/BCLIP2/data/imagenet10/train', transform=val_preprocess,is_valid_file=lambda x: os.path.splitext(x)[1].lower() in ['.jpg', '.jpeg'])
-    # file_names = [sample[0] for sample in image_net_10.samples]
-    # test = obtain_ImageNet100_classes()
-    l = obtain_id_oxford_iiit_pet_classes()
-    print(type(l))
+    classes, nums_classes = get_classes('food101')
+    print(classes)
+    print(nums_classes)
