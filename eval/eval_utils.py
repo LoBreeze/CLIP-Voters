@@ -150,7 +150,7 @@ def set_ood_loader(dataset_name, root_dir, batch_size, **kwargs):
         data_dir = root_dir
     else:
         raise ValueError(f"Unknown dataset {dataset_name}")
-        
+   
     ood_loader = DataLoader(ood_dataset[dataset_name](data_dir, transorm), batch_size=batch_size, shuffle=False, **kwargs)
     
     return ood_loader
