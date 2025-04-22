@@ -1,4 +1,4 @@
-# OOD-Detector: 基于CLIP和证据理论的分布外检测框架
+# CLIP-Voters: 基于CLIP和证据理论的分布外检测框架
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
