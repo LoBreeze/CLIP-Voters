@@ -35,9 +35,9 @@ def get_args():
                     'imagenet20', 'imagenet10', 'imagenet100', 'imagenet200']  # 支持的数据集选项列表。
     threshold_options = ['one', 'multi','const']  # 阈值类型选项列表。
     # 基础的训练设置
-    parser.add_argument('--train-batch-size', type=int, default=32, metavar='N', help='input batch size for training (default: 512)')  # 训练批次大小。
-    parser.add_argument('--test-batch-size', type=int,  default=32, metavar='N', help='input batch size for testing (default: 512)')  # 测试批次大小。
-    parser.add_argument('--epochs', type=int, default=200, metavar='N', help='number of epochs to train')  # 训练轮数。
+    parser.add_argument('--train-batch-size', type=int, default=64, metavar='N', help='input batch size for training (default: 512)')  # 训练批次大小。
+    parser.add_argument('--test-batch-size', type=int,  default=64, metavar='N', help='input batch size for testing (default: 512)')  # 测试批次大小。
+    parser.add_argument('--epochs', type=int, default=500, metavar='N', help='number of epochs to train')  # 训练轮数。
     parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
     parser.add_argument('--learning_rate', type=float, default=0.003311, metavar='LR', help='learning rate')
 
@@ -45,14 +45,14 @@ def get_args():
     parser.add_argument('--arch', default='ViT-B/32', choices=model_options)
     parser.add_argument('--pretrained_dir', type=str, default= tmp_dir, help='预训练模型的下载路径')
     parser.add_argument('--logit_scale', type=float, default=None, help='logits的缩放因子')
-    parser.add_argument('--thres_type', type=str, default='one', choices=threshold_options, help='阈值类型')
+    parser.add_argument('--thres_type', type=str, default='multi', choices=threshold_options, help='阈值类型')
     parser.add_argument('--ratio', type=float, default=0.2, help='图像特征的融合比例')
     parser.add_argument('--clip_loss', type=float, default=1.0, help='clip损失的权重')
     parser.add_argument('--alpha_ova', type=float, default=0.9, help='ova损失的权重')
     parser.add_argument('--weight_freq', type=int, default=10, help='clip损失权重更新频率')
 
     # 数据集的选择
-    parser.add_argument('--dataset', '-d', default='cifar-10', choices=dataset_options)  # 选择数据集。
+    parser.add_argument('--dataset', '-d', default='oxford_iiit_pet', choices=dataset_options)  # 选择数据集。 food101
     parser.add_argument('--data-dir', default=os.path.join(parent_dir, 'data') , help='directory of dataset for training and testing')  # 数据集的存储路径。
 
     # 模型保存目录和日志目录
@@ -116,35 +116,36 @@ def train(args):
 
 
     # 使用 Trainer 进行训练
-    # trainer = pl.Trainer(
-    #     max_epochs=args.epochs,  # 最大训练轮数
-    #     accelerator='gpu',  # 分布式数据并行 (DDP)
-    #     devices= devices ,  # 使用 2 个 GPU 进行训练 'auto', [1,2], 7
-    #     # strategy='ddp_find_unused_parameters_true',  # 分布式数据并行 (DDP) 策略
-    #     strategy=DDPStrategy(find_unused_parameters=True),  # 分布式数据并行 (DDP) 策略  | None
-    #     logger=logger,  # 使用 TensorBoard 记录
-    #     callbacks=callbacks,  # 模型保存回调
-    #     enable_progress_bar=True,
-    #     accumulate_grad_batches=16,
-    #     default_root_dir = tmp_dir, # 保存一些其他文件  
-    #     # gradient_clip_val=1.0,
-    #     # limit_train_batches=1.0,
-    # )
-
-
-    # mac版本
     trainer = pl.Trainer(
         max_epochs=args.epochs,  # 最大训练轮数
-        accelerator='mps',  # 使用 MPS 加速
-        devices=1,  # 使用单个 GPU
+        accelerator='gpu',  # 分布式数据并行 (DDP)
+        devices= 'auto' ,  # 使用 2 个 GPU 进行训练 'auto', [1,2], 7
+        # strategy='ddp_find_unused_parameters_true',  # 分布式数据并行 (DDP) 策略
+        # strategy=DDPStrategy(find_unused_parameters=True),  # 分布式数据并行 (DDP) 策略  | None
+        strategy=None,
         logger=logger,  # 使用 TensorBoard 记录
         callbacks=callbacks,  # 模型保存回调
         enable_progress_bar=True,
-        accumulate_grad_batches=16,  
-        default_root_dir = tmp_dir, # 保存一些其他文件
+        accumulate_grad_batches=16,
+        default_root_dir = tmp_dir, # 保存一些其他文件  
         # gradient_clip_val=1.0,
         # limit_train_batches=1.0,
     )
+
+
+    # # mac版本
+    # trainer = pl.Trainer(
+    #     max_epochs=args.epochs,  # 最大训练轮数
+    #     accelerator='mps',  # 使用 MPS 加速
+    #     devices=1,  # 使用单个 GPU
+    #     logger=logger,  # 使用 TensorBoard 记录
+    #     callbacks=callbacks,  # 模型保存回调
+    #     enable_progress_bar=True,
+    #     accumulate_grad_batches=16,  
+    #     default_root_dir = tmp_dir, # 保存一些其他文件
+    #     # gradient_clip_val=1.0,
+    #     # limit_train_batches=1.0,
+    # )
     
     if args.auto_find:
         suggest_lr = auto_find_lr(trainer, model, train_loader, test_loader)
